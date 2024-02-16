@@ -1,0 +1,15 @@
+[Unit]
+Description=Python server which allow remote logging over network to local files
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=michal
+
+WorkingDirectory=/home/michal/rlogging
+ExecStart=/home/michal/rlogging/main.sh
+
+[Install]
+WantedBy=multi-user.target
