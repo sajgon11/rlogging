@@ -27,13 +27,14 @@ class RemoteLoggingServer(NamedClass):
 	Handle settings from MQTT and start/stop the actual server
 	Contains AsyncTCPLoggerServer for handling the actual logging
 	"""
-	def __init__(self, name:str):
+	def __init__(self, name:str, localHostName:str):
 		super().__init__(name)
 		self.__conf = RemoteLoggingSettings()
 		self.__logger = self.__createLogger()
 		self.__handler = self.__createHandler()
 		self.__logger.addHandler(self.__handler)
 		self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
+		self.__localHostName = localHostName
 
 	def setEnabled(self, value:bool) -> None:
 		if value != self.__conf.enabled:
@@ -44,7 +45,14 @@ class RemoteLoggingServer(NamedClass):
 				self.stopServer()
 
 	def setHost(self, value:str) -> None:
-		self.__conf.host = value
+		if value != self.__conf.host:
+			_LOGGER.info(f"<{self.name}> - got new host<{value}>, old host<{self.__conf.host}>")
+			self.__conf.host = value
+			# host was changed
+			# check if host is my local host name
+			# server should be running only for local server
+			self.stopServer()
+			self.startServerIfPossible()
 
 	def setPort(self, value:int) -> None:
 		if value != self.__conf.port:
@@ -66,20 +74,21 @@ class RemoteLoggingServer(NamedClass):
 		self.__handler.backupCount = value
 
 	def isConfigurationValidForServer(self) -> bool:
-		# only port is important the rest can be specified durring server running
-		return self.__conf.port > 0
+		# only port is important - we need to listen on
+		# valid configuration have the correct host
+		return self.__conf.port > 0 and self.__conf.host == self.__localHostName
 
 	def startServerIfPossible(self) -> None:
 		if self.__server.isRunning():
-			_LOGGER.debug(f"<{self.name}> - server already running on port<{self.__conf.port}>, don't start it again")
+			_LOGGER.debug(f"<{self.name}> - server already running on<{self.__conf.host}:{self.__conf.port}>, don't start it again")
 			return
 		if not self.__conf.enabled:
-			_LOGGER.debug(f"<{self.name}> - not enabled by configuration, don't start server")
+			_LOGGER.debug(f"<{self.name}> - not enabled by configuration, don't start server on<{self.__conf.host}:{self.__conf.port}>")
 			return
 		if not self.isConfigurationValidForServer():
-			_LOGGER.info(f"<{self.name}> - configuration not valid, cannot start server on port<{self.__conf.port}>")
+			_LOGGER.info(f"<{self.name}> - configuration not valid, cannot start server on<{self.__conf.host}:{self.__conf.port}>")
 			return
-		_LOGGER.info(f"<{self.name}> - starting server on port<{self.__conf.port}>")
+		_LOGGER.info(f"<{self.name}> - starting server on <{self.__conf.host}:{self.__conf.port}>")
 		self.__server.start()
 
 	def stopServer(self) -> None:
