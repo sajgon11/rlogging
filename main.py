@@ -44,7 +44,7 @@ def getPassword() -> str:
 #------------------------------------------------------------------------------------------
 def dumpUsedTopics() -> None:
 	initDumpLogger(logging.CRITICAL) # use critical to suppress all other messages
-	rLog = RemoteLogging(getAppName(), getUser(), getPassword())
+	rLog = RemoteLogging(getAppName(), getUser(), getPassword(), getLocalHostName())
 	rLog.dumpTopics(logging.CRITICAL)
 
 
