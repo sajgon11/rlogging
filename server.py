@@ -36,6 +36,13 @@ class RemoteLoggingServer(NamedClass):
 		self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
 		self.__localHostName = localHostName
 
+	def dump(self, level:int) -> None:
+		_LOGGER.log(level,  "------------------------------------------------------------------")
+		_LOGGER.log(level, f"Server<{self.name}>")
+		_LOGGER.log(level, f"Configuration<{self.__conf}>")
+		_LOGGER.log(level, f"Runnig<{self.__server.isRunning()}>, connected clients<{self.__server.getCountOfClients()}>")
+		_LOGGER.log(level,  "------------------------------------------------------------------")
+
 	def setEnabled(self, value:bool) -> None:
 		if value != self.__conf.enabled:
 			self.__conf.enabled = value
