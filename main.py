@@ -18,6 +18,7 @@ from msy.argparse import initParser, getParser, parseArguments
 from msy.asyncio import _GLOBAL_LOOP
 from msy.scheduler import _SCHEDULER
 from msy.test import initLogger, getMQTTAppName, getMQTTUser, getMQTTPassword
+from msy.utils import getLocalHostName, getLocalPrimaryIP
 from msy.mqtt.utils import getRetainedMessages, cleanRetainedMessages, dumpMessages
 
 ##############################
@@ -60,7 +61,7 @@ def dumpAndClearRetainTopics() -> None:
 
 
 #------------------------------------------------------------------------------------------
-def runProgram() -> None:
+def runProgram(useIp:bool) -> None:
 	# init test logger or file logger based on testing parameter
 	initLogger(initLocalFileLogger, logging.INFO, "rlogging")
 
@@ -68,7 +69,12 @@ def runProgram() -> None:
 	_LOGGER.info("============ New run")
 	_LOGGER.info("==================================================================")
 	_LOGGER.debug("Starting application rlogging")
-	rLog = RemoteLogging(getAppName(), getUser(), getPassword())
+	hostName = ""
+	if useIp:
+		hostName = getLocalPrimaryIP()
+	else:
+		hostName = getLocalHostName()
+	rLog = RemoteLogging(getAppName(), getUser(), getPassword(), hostName)
 	rLog.start()
 	_GLOBAL_LOOP.run_until_complete(_SCHEDULER.run())
 	_LOGGER.debug("Done, stopping application rlogging")
@@ -85,6 +91,7 @@ if __name__ == "__main__":
 	getParser().add_argument("--topic", action="store_true", help="Print used MQTT topics")
 	getParser().add_argument("--list", action="store_true", help="Print all MQTT retained message topics as time or test user")
 	getParser().add_argument("--clean", action="store_true", help="Print and clean all retained MQTT topics as time or test user")
+	getParser().add_argument("--ip", action="store_true", help="Use IP instead of hostname")
 	args = parseArguments()
 
 	# check what should I do
@@ -95,7 +102,7 @@ if __name__ == "__main__":
 	elif args.clean:
 		dumpAndClearRetainTopics()
 	else:
-		runProgram()
+		runProgram(args.ip)
 
 
 

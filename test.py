@@ -19,7 +19,7 @@ from msy.argparse import initParser, getParser, parseArguments
 from msy.asyncio import _GLOBAL_LOOP
 from msy.mqtt import AppMQTTConnection
 from msy.scheduler import _SCHEDULER
-from msy.utils import getLocalHostName
+from msy.utils import getLocalHostName, getLocalPrimaryIP
 
 
 #------------------------------------------------------------------------------------------
@@ -36,13 +36,19 @@ def remoteLog() -> None:
 
 
 #------------------------------------------------------------------------------------------
-def runProgram(appName:str, port:int) -> None:
+def runProgram(appName:str, port:int, useIp:bool) -> None:
 	initTestLogger()
+
+	hostName = ""
+	if useIp:
+		hostName = getLocalPrimaryIP()
+	else:
+		hostName = getLocalHostName()
 
 	_LOGGER.info("==================================================================")
 	_LOGGER.debug("Starting application test")
 	connection = AppMQTTConnection(appName, "shsystem", "o53kf6Z76ws6VenKAEdtVc1kNcpSKvDv")  # user shsystem can write to all param and _param topics...
-	connection.addRemoteLogging(True, logging.DEBUG, port, host=getLocalHostName())
+	connection.addRemoteLogging(True, logging.DEBUG, port, host=hostName)
 	connection.start()
 
 	random.seed()
@@ -62,10 +68,11 @@ if __name__ == "__main__":
 				Program is listening for remote_trace topics in MQTT and enable/disable servers based on MQTT settings
 				""")
 	getParser().add_argument("appName", help="Application name used for MQTT")
-	getParser().add_argument("port", type=int help="Initial port for remote logging")
+	getParser().add_argument("port", type=int, help="Initial port for remote logging")
+	getParser().add_argument("--ip", action="store_true", help="Use IP instead of hostname")
 	args = parseArguments()
 
-	runProgram(args.appName, args.port)
+	runProgram(args.appName, args.port, args.ip)
 
 
 

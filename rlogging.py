@@ -15,7 +15,6 @@ from typing import Dict
 from msy import _LOGGER
 from msy.mqtt import AppMQTTConnection
 from msy.scheduler import _SCHEDULER
-from msy.utils import getLocalHostName
 from msy.mqtt.helper import buildTrigger
 from msy.mqtt.logging import RemoteLoggingSettings, TOPIC_REMOTE_ENABLED, TOPIC_REMOTE_HOST, TOPIC_REMOTE_PORT, TOPIC_REMOTE_LEVEL, TOPIC_REMOTE_MAXBYTES, TOPIC_REMOTE_BACKUPCOUNT
 from msy.mqtt.topic import AppTopicBuilder
@@ -30,10 +29,10 @@ PERIODIC_DUMP_INTERVAL = 900 # periodic dump every 15 minutes
 
 #------------------------------------------------------------------------------------------
 class RemoteLogging(object):
-	def __init__(self, appName:str, userName:str, password:str) -> None:
+	def __init__(self, appName:str, userName:str, password:str, hostName:str) -> None:
 		self.__connect = AppMQTTConnection(appName, userName, password)
 		self.__servers:Dict[str, RemoteLoggingServer] = {}
-		self.__localHostName = getLocalHostName()
+		self.__localHostName = hostName
 		#
 		self.__initMQTT()
 
