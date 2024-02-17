@@ -32,7 +32,7 @@ PERIODIC_DUMP_INTERVAL = 900 # periodic dump every 15 minutes
 class RemoteLogging(object):
 	def __init__(self, appName:str, userName:str, password:str) -> None:
 		self.__connect = AppMQTTConnection(appName, userName, password)
-		self.__servers:Dict[str, RemoteLoggingServer]
+		self.__servers:Dict[str, RemoteLoggingServer] = {}
 		self.__localHostName = getLocalHostName()
 		#
 		self.__initMQTT()

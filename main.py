@@ -62,7 +62,7 @@ def dumpAndClearRetainTopics() -> None:
 #------------------------------------------------------------------------------------------
 def runProgram() -> None:
 	# init test logger or file logger based on testing parameter
-	initLogger(initLocalFileLogger, logging.INFO, "RemoteLogging")
+	initLogger(initLocalFileLogger, logging.INFO, "rlogging")
 
 	_LOGGER.info("==================================================================")
 	_LOGGER.info("============ New run")
