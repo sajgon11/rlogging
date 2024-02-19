@@ -9,6 +9,7 @@
 ### global imports
 import logging
 from logging.handlers import RotatingFileHandler
+from typing import Optional
 
 ##############################
 ### utils imports
@@ -29,8 +30,7 @@ class RemoteLoggingServer(NamedClass):
 		super().__init__(name)
 		self.__conf = RemoteLoggingSettings()
 		self.__logger = self.__createLogger()
-		self.__handler = self.__createHandler()
-		self.__logger.addHandler(self.__handler)
+		self.__handler:Optional[RotatingFileHandler] = None
 		self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
 		self.__localHostName = localHostName
 
@@ -72,11 +72,13 @@ class RemoteLoggingServer(NamedClass):
 
 	def setMaxBytes(self, value:int) -> None:
 		self.__conf.maxBytes = value
-		self.__handler.maxBytes = value
+		if self.__handler is not None:
+			self.__handler.maxBytes = value
 
 	def setBackupCount(self, value:int) -> None:
 		self.__conf.backupCount = value
-		self.__handler.backupCount = value
+		if self.__handler is not None:
+			self.__handler.backupCount = value
 
 	def isConfigurationValidForServer(self) -> bool:
 		# only port is important - we need to listen on
@@ -94,11 +96,13 @@ class RemoteLoggingServer(NamedClass):
 			_LOGGER.info(f"<{self.name}> - configuration not valid, cannot start server on<{self.__conf.host}:{self.__conf.port}>")
 			return
 		_LOGGER.info(f"<{self.name}> - starting server on <{self.__conf.host}:{self.__conf.port}>")
+		self.__addHandler()
 		self.__server.start()
 
 	def stopServer(self) -> None:
 		if self.__server.isRunning():
 			_LOGGER.info(f"<{self.name}> - stopping server")
+			self.__removeHandler()
 			self.__server.stop()
 
 	def __createLogger(self) -> logging.Logger:
@@ -108,8 +112,14 @@ class RemoteLoggingServer(NamedClass):
 		clearLoggerHandlers(logger)
 		return logger
 
-	def __createHandler(self) -> RotatingFileHandler:
-		handler = RotatingFileHandler(filename=getLoggingFileName(self.name), maxBytes=self.__conf.maxBytes, backupCount=self.__conf.backupCount)
-		handler.setLevel(logging.DEBUG)
-		handler.setFormatter(getDefaultFormater())
-		return handler
+	def __addHandler(self) -> None:
+		if self.__handler is None:
+			self.__handler = RotatingFileHandler(filename=getLoggingFileName(self.name), maxBytes=self.__conf.maxBytes, backupCount=self.__conf.backupCount)
+			self.__handler.setLevel(logging.DEBUG)
+			self.__handler.setFormatter(getDefaultFormater())
+			self.__logger.addHandler(self.__handler)
+
+	def __removeHandler(self) -> None:
+		if self.__handler is not None:
+			self.__logger.removeHandler(self.__handler)
+			self.__handler = None
