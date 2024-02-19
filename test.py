@@ -14,7 +14,7 @@ import random
 
 ##############################
 ### utils imports
-from msy import initTestLogger, _LOGGER
+from msy import initTestLogger, _LOGGER, _LIB_LOGGER
 from msy.argparse import initParser, getParser, parseArguments
 from msy.asyncio import _GLOBAL_LOOP
 from msy.mqtt import AppMQTTConnection
@@ -33,6 +33,14 @@ def remoteLog() -> None:
 		raise ValueError(f"Failed with message<{number}>")
 	except ValueError:
 		_LOGGER.exception(f"Got exception message<{number}>")
+	_LIB_LOGGER.debug(f"LIB - Debug message<{number}>")
+	_LIB_LOGGER.info(f"LIB - Debug message<{number}>")
+	_LIB_LOGGER.warning(f"LIB - Debug message<{number}>")
+	_LIB_LOGGER.error(f"LIB - Debug message<{number}>")
+	try:
+		raise ValueError(f"Failed with message<{number}>")
+	except ValueError:
+		_LIB_LOGGER.exception(f"LIB - Got exception message<{number}>")
 
 
 #------------------------------------------------------------------------------------------
