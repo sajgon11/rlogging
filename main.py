@@ -4,6 +4,7 @@
 # author: Michal Sykora
 # launch point of application
 # It requires aiomqtt library (pip[3] install aiomqtt)
+# It requires msgpack library (pip[3] install msgpack)
 # It requires https://github.com/sajgon11/python-libs installed
 
 
