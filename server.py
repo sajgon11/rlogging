@@ -9,12 +9,12 @@
 ### global imports
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import Optional
+from typing import Optional, Union
 
 ##############################
 ### utils imports
 from msy import _LOGGER, clearLoggerHandlers, getLoggingFileName, getDefaultFormater
-from msy.asynclogging import AsyncTCPLoggerServer
+from msy.asynclogging import AsyncTCPLoggerServer, AsyncUDPLoggerServer, ASYNC_LOGGING_TYPE_IOT, ASYNC_LOGGING_TYPE_PYTHON
 from msy.utils import NamedClass
 from msy.mqtt.logging import RemoteLoggingSettings
 
@@ -28,18 +28,33 @@ class RemoteLoggingServer(NamedClass):
 	"""
 	def __init__(self, name:str, localHostName:str):
 		super().__init__(name)
+		# default type is ASYNC_LOGGING_TYPE_PYTHON, keep it since the application libs can be outdated and not send the type info
 		self.__conf = RemoteLoggingSettings()
 		self.__logger = self.__createLogger()
 		self.__handler:Optional[RotatingFileHandler] = None
-		self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
+		self.__server:Optional[Union[AsyncTCPLoggerServer, AsyncUDPLoggerServer]] = None
 		self.__localHostName = localHostName
 
 	def dump(self, level:int) -> None:
 		_LOGGER.log(level,  "------------------------------------------------------------------")
 		_LOGGER.log(level, f"Server<{self.name}>")
 		_LOGGER.log(level, f"Configuration<{self.__conf}>")
-		_LOGGER.log(level, f"Runnig<{self.__server.isRunning()}>, connected clients<{self.__server.getCountOfClients()}>")
+		if self.__server is None:
+			_LOGGER.log(level, "Server not initialized yet")
+		else:
+			_LOGGER.log(level, f"Runnig<{self.__server.isRunning()}>, connected clients<{self.__server.getCountOfClients()}>")
 		_LOGGER.log(level,  "------------------------------------------------------------------")
+
+	def setType(self, value:int) -> None:
+		if value != self.__conf.type:
+			_LOGGER.info(f"<{self.name}> - got new type<{value}>, old type<{self.__conf.type}>")
+			self.__conf.type = value
+			# type was changed
+			# need to restart server
+			self.stopServer()
+			self.__server = None
+			# start server with new type
+			self.startServerIfPossible()
 
 	def setEnabled(self, value:bool) -> None:
 		if value != self.__conf.enabled:
@@ -63,7 +78,8 @@ class RemoteLoggingServer(NamedClass):
 		if value != self.__conf.port:
 			_LOGGER.info(f"<{self.name}> - got new port<{value}>, old port<{self.__conf.port}>")
 			self.__conf.port = value
-			self.__server.port = value
+			if self.__server is not None:
+				self.__server.port = value
 			self.stopServer()
 			self.startServerIfPossible()
 
@@ -83,9 +99,19 @@ class RemoteLoggingServer(NamedClass):
 	def isConfigurationValidForServer(self) -> bool:
 		# only port is important - we need to listen on
 		# valid configuration have the correct host
-		return self.__conf.port > 0 and self.__conf.host == self.__localHostName
+		return self.__conf.port > 0 and self.__conf.host == self.__localHostName and self.__conf.type in (ASYNC_LOGGING_TYPE_IOT, ASYNC_LOGGING_TYPE_PYTHON)
 
 	def startServerIfPossible(self) -> None:
+		# create server if not created yet
+		if self.__server is None:
+			# need to have valid type to create server
+			if self.__conf.type == ASYNC_LOGGING_TYPE_IOT:
+				self.__server = AsyncUDPLoggerServer(self.__conf.port, self.__logger)
+			elif self.__conf.type == ASYNC_LOGGING_TYPE_PYTHON:
+				self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
+			else:
+				_LOGGER.error(f"<{self.name}> - unknown type<{self.__conf.type}>, cannot start server on<{self.__conf.host}:{self.__conf.port}>")
+				return
 		if self.__server.isRunning():
 			_LOGGER.debug(f"<{self.name}> - server already running on<{self.__conf.host}:{self.__conf.port}>, don't start it again")
 			return
@@ -100,7 +126,7 @@ class RemoteLoggingServer(NamedClass):
 		self.__server.start()
 
 	def stopServer(self) -> None:
-		if self.__server.isRunning():
+		if self.__server is not None and self.__server.isRunning():
 			_LOGGER.info(f"<{self.name}> - stopping server")
 			self.__removeHandler()
 			self.__server.stop()

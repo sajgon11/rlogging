@@ -16,7 +16,7 @@ from msy import _LOGGER
 from msy.mqtt import AppMQTTConnection
 from msy.scheduler import _SCHEDULER
 from msy.mqtt.helper import buildTrigger
-from msy.mqtt.logging import RemoteLoggingSettings, TOPIC_REMOTE_ENABLED, TOPIC_REMOTE_HOST, TOPIC_REMOTE_PORT, TOPIC_REMOTE_LEVEL, TOPIC_REMOTE_MAXBYTES, TOPIC_REMOTE_BACKUPCOUNT
+from msy.mqtt.logging import RemoteLoggingSettings, TOPIC_REMOTE_ENABLED, TOPIC_REMOTE_HOST, TOPIC_REMOTE_PORT, TOPIC_REMOTE_LEVEL, TOPIC_REMOTE_MAXBYTES, TOPIC_REMOTE_BACKUPCOUNT, TOPIC_REMOTE_TYPE
 from msy.mqtt.topic import AppTopicBuilder
 
 ##############################
@@ -54,6 +54,12 @@ class RemoteLogging(object):
 	def stop(self) -> None:
 		self.__connect.stop()
 		_SCHEDULER.cancelAllByCallback(self.__periodicDump)
+
+	def __onTypeChanged(self, topic:str, value:bool) -> None:
+		_LOGGER.debug(f"Got new type<{value}> from topic<{topic}")
+		name = self.__getAppNameFromTopic(topic)
+		server = self.__getOrCreateServer(name)
+		server.setType(value)
 
 	def __onEnabledChanged(self, topic:str, value:bool) -> None:
 		_LOGGER.debug(f"Got new enabled<{value}> from topic<{topic}")
@@ -94,6 +100,7 @@ class RemoteLogging(object):
 	def __initMQTT(self) -> None:
 		conf = RemoteLoggingSettings()
 		builder = AppTopicBuilder("+")
+		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_TYPE), self.__onTypeChanged, type(conf.type), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_ENABLED), self.__onEnabledChanged, type(conf.enabled), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_HOST), self.__onHostChanged, type(conf.host), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_PORT), self.__onPortChanged, type(conf.port), includeTopicInCallback=True))
