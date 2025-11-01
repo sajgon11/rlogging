@@ -98,7 +98,7 @@ class RemoteLoggingServer(NamedClass):
 
 	def isConfigurationValidForServer(self) -> bool:
 		# only port is important - we need to listen on
-		# valid configuration have the correct host
+		# valid configuration have the correct host and type
 		return self.__conf.port > 0 and self.__conf.host == self.__localHostName and self.__conf.type in (ASYNC_LOGGING_TYPE_IOT, ASYNC_LOGGING_TYPE_PYTHON)
 
 	def startServerIfPossible(self) -> None:
@@ -107,8 +107,10 @@ class RemoteLoggingServer(NamedClass):
 			# need to have valid type to create server
 			if self.__conf.type == ASYNC_LOGGING_TYPE_IOT:
 				self.__server = AsyncUDPLoggerServer(self.__conf.port, self.__logger)
+				_LOGGER.info(f"<{self.name}> - created IoT server on port<{self.__conf.port}>")
 			elif self.__conf.type == ASYNC_LOGGING_TYPE_PYTHON:
 				self.__server = AsyncTCPLoggerServer(self.__conf.port, self.__logger)
+				_LOGGER.info(f"<{self.name}> - created Python server on port<{self.__conf.port}>")
 			else:
 				_LOGGER.error(f"<{self.name}> - unknown type<{self.__conf.type}>, cannot start server on<{self.__conf.host}:{self.__conf.port}>")
 				return
@@ -121,6 +123,7 @@ class RemoteLoggingServer(NamedClass):
 		if not self.isConfigurationValidForServer():
 			_LOGGER.info(f"<{self.name}> - configuration not valid, cannot start server on<{self.__conf.host}:{self.__conf.port}>")
 			return
+
 		_LOGGER.info(f"<{self.name}> - starting server on <{self.__conf.host}:{self.__conf.port}>")
 		self.__addHandler()
 		self.__server.start()

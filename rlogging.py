@@ -100,7 +100,7 @@ class RemoteLogging(object):
 	def __initMQTT(self) -> None:
 		conf = RemoteLoggingSettings()
 		builder = AppTopicBuilder("+")
-		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_TYPE), self.__onTypeChanged, type(conf.type), includeTopicInCallback=True))
+		self.__connect.addSubscribe(buildTrigger(builder.buildInternalDataTopic(TOPIC_REMOTE_TYPE), self.__onTypeChanged, type(conf.type), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_ENABLED), self.__onEnabledChanged, type(conf.enabled), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_HOST), self.__onHostChanged, type(conf.host), includeTopicInCallback=True))
 		self.__connect.addSubscribe(buildTrigger(builder.buildInternalParameterGetTopic(TOPIC_REMOTE_PORT), self.__onPortChanged, type(conf.port), includeTopicInCallback=True))
